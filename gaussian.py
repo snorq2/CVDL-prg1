@@ -33,7 +33,6 @@ def gaussian_iterate(source: np.ndarray, filter: np.ndarray):
     padding = int((len(filter)-1) / 2)
     output = np.zeros(np.shape(source))
     prepped = np.pad(source, padding)
-    print(output)
     for i in range(0, len(output)):
         for j in range(0, len(output[0])):
             output[i, j] = gaussian_sample(prepped[i:i+(padding*2)+1, j:j+(padding*2)+1], filter)
@@ -41,7 +40,14 @@ def gaussian_iterate(source: np.ndarray, filter: np.ndarray):
     
 def apply_gaussian(source, filter):
     img = np.array(Image.open(source))
-    return Image.fromarray(gaussian_iterate(img, filter))
+    new_img = np.zeros(np.shape(img), dtype='uint8')
+    if np.ndim(img) == 3:
+        for i in range(0, len(img[0, 0]-1)):
+            new_img[:,:,i] = np.round(gaussian_iterate(img[:,:,i], filter))
+    else:
+        new_img = gaussian_iterate(img, filter)
+            
+    return Image.fromarray(new_img)
 
 def apply_sobel(source):
     img = np.array(Image.open(source))
@@ -52,15 +58,16 @@ def apply_sobel(source):
     g = np.sqrt(gx + gy)
     return Image.fromarray(g)
     
-    
-# gaus_1 = apply_gaussian('filter1_img.jpg', g_filter_3x3)
-# gaus_1_5x5 = apply_gaussian('filter1_img.jpg', g_filter_5x5)
-# gaus_1_gx = apply_gaussian('filter1_img.jpg', g_filter_gx)
-# gaus_1_gy = apply_gaussian('filter1_img.jpg', g_filter_gy)
-# img1.show()
-# gaus_1.show()
+ 
+current_img = "filter2_img.jpg"   
+gaus_1 = apply_gaussian(current_img, g_filter_3x3)
+# gaus_1_5x5 = apply_gaussian(current_img, g_filter_5x5)
+# gaus_1_gx = apply_gaussian(current_img, g_filter_gx)
+# gaus_1_gy = apply_gaussian(current_img, g_filter_gy)
+img2.show()
+gaus_1.show()
 # gaus_1_5x5.show()
 # gaus_1_gx.show()
 # gaus_1_gy.show()
-sobel_1 = apply_sobel('filter1_img.jpg')
-sobel_1.show()
+# sobel_1 = apply_sobel('filter1_img.jpg')
+# sobel_1.show()

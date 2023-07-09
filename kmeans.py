@@ -1,21 +1,11 @@
 import numpy as np
 import sys
 
-# Preset parameters for clusters and number of runs
-num_k = 5
-r = 10
-
-# Set up data
-cluster_data_preprop = np.loadtxt("545_cluster_dataset (1).txt")
-
-cluster_data = np.zeros(
-    (len(cluster_data_preprop), len(cluster_data_preprop[0]) + 1))
-cluster_data[:, :-1] = cluster_data_preprop
+# This assignment based on homework submitted for CS445 Machine Learning, Fall 2022
 
 # Calculate L2 distances
 # Input is a data point sliced to x/y coordinates and a single centroid
 # Returns distance between data point and centroid
-
 
 def L2(data, centroid):
     pretotal = (data - centroid) ** 2
@@ -27,7 +17,7 @@ def L2(data, centroid):
 # Output is the data slice with updated cluster assignment
 
 
-def calc_closest(data, centroid):
+def calc_closest(data, centroid, num_k):
     last_distance = sys.float_info.max
     for i in range(0, num_k):
         current_distance = L2(data[0:2], centroid[i]) ** 2
@@ -41,9 +31,9 @@ def calc_closest(data, centroid):
 # Output is the data array with updated cluster assignments
 
 
-def calc_distance(data, centroid):
+def calc_distance(data, centroid, num_k):
     for i in range(0, len(data)):
-        data[i] = calc_closest(data[i, :], centroid)
+        data[i] = calc_closest(data[i, :], centroid, num_k)
     return data
 
 # Centroid initializer
@@ -51,16 +41,17 @@ def calc_distance(data, centroid):
 # Output is num_k random set of x/y coordinate slices
 
 
-def randomize_centroids(data):
+def randomize_centroids(data, num_k):
     random = np.random.randint(0, high=len(data), size=num_k)
-    return data[random, :-1]
+    output = data[random, :-1]
+    return output
 
 # Compute centroids based on current data membership
 # Input is data array
 # Output is updated centroid array
 
 
-def compute_centroids(data):
+def compute_centroids(data, num_k):
     centroids = np.zeros((num_k, 2))
     num_points = np.zeros((num_k, 1))
     for i in range(0, len(data)):
@@ -91,16 +82,17 @@ def WCSS(data, centroids):
 # Includes a catch to return early if a centroid drops out
 
 
-def kmeans_run(data):
-    centroid_start = randomize_centroids(data)
+def kmeans_run(data, num_k):
+    dims = np.ndim(data)
+    centroid_start = randomize_centroids(data, num_k)
     centroid_last = np.zeros(centroid_start.shape)
     centroid_last_2 = np.zeros(centroid_start.shape)
     repeat = True
     while (repeat):
         centroid_last_2 = centroid_last
         centroid_last = centroid_start
-        data = calc_distance(data, centroid_start)
-        centroid_start = compute_centroids(data)
+        data = calc_distance(data, centroid_start, num_k)
+        centroid_start = compute_centroids(data, num_k)
         if (np.isnan(centroid_start).any()):
             return 0, centroid_start, data
 
@@ -116,32 +108,80 @@ def kmeans_run(data):
 # Filename helper to generate a file name based on current parameters
 
 
-def generate_filename(type):
+def generate_filename(type, num_k):
     return "kmeans-k" + str(num_k) + "-" + type + ".csv"
 
+def run_2d(file, r, num_k):
 
-# Initialize arrays to capture data for each run
-all_WCSS = np.zeros(r)
-all_centroids = np.zeros((r, num_k, 2))
-all_data = np.zeros((r, len(cluster_data), len(cluster_data[0])))
-i = 0
+    # Set up data
+    cluster_data_preprop = np.loadtxt(file)
 
-# Primary loop for each run
-# Includes a check for a vanished centroid, restarting a run if one is detected
-while i < r:
-    all_WCSS[i], all_centroids[i], all_data[i] = kmeans_run(cluster_data)
-    if (np.isnan(all_centroids[i]).any()):
-        print("Found NaN on run " + str(i) + ", restarting")
-    else:
-        print("k-Means run " + str(i))
-        print("WCSS: " + str(all_WCSS[i]))
-        print("Centroids: " + str(all_centroids[i]))
-        i += 1
+    cluster_data = np.zeros(
+        (len(cluster_data_preprop), len(cluster_data_preprop[0]) + 1))
+    cluster_data[:, :-1] = cluster_data_preprop
 
-# Find lowest MSE and save that data
-best_run = np.argmin(all_WCSS)
-np.savetxt(generate_filename("centroids"),
-           all_centroids[best_run], delimiter=",", fmt="%f")
-np.savetxt(generate_filename("dataset"),
-           all_data[best_run], delimiter=",", fmt="%f")
-print("Best WCSS was on run " + str(best_run))
+
+    # Initialize arrays to capture data for each run
+    all_WCSS = np.zeros(r)
+    all_centroids = np.zeros((r, num_k, 2))
+    all_data = np.zeros((r, len(cluster_data), len(cluster_data[0])))
+    i = 0
+
+    # Primary loop for each run
+    # Includes a check for a vanished centroid, restarting a run if one is detected
+    while i < r:
+        all_WCSS[i], all_centroids[i], all_data[i] = kmeans_run(cluster_data, num_k)
+        if (np.isnan(all_centroids[i]).any()):
+            print("Found NaN on run " + str(i) + ", restarting")
+        else:
+            print("k-Means run " + str(i))
+            print("WCSS: " + str(all_WCSS[i]))
+            print("Centroids: " + str(all_centroids[i]))
+            i += 1
+
+    # Find lowest MSE and save that data
+    best_run = np.argmin(all_WCSS)
+    np.savetxt(generate_filename("centroids", num_k),
+            all_centroids[best_run], delimiter=",", fmt="%f")
+    np.savetxt(generate_filename("dataset", num_k),
+            all_data[best_run], delimiter=",", fmt="%f")
+    print("Best WCSS was on run " + str(best_run))
+    
+def run_3d(r, num_k):
+
+    # Set up data
+    cluster_data_preprop = np.loadtxt("510_cluster_dataset.txt")
+
+    cluster_data = np.zeros(
+        (len(cluster_data_preprop), len(cluster_data_preprop[0]) + 1))
+    cluster_data[:, :-1] = cluster_data_preprop
+
+
+    # Initialize arrays to capture data for each run
+    all_WCSS = np.zeros(r)
+    all_centroids = np.zeros((r, num_k, 2))
+    all_data = np.zeros((r, len(cluster_data), len(cluster_data[0])))
+    i = 0
+
+    # Primary loop for each run
+    # Includes a check for a vanished centroid, restarting a run if one is detected
+    while i < r:
+        all_WCSS[i], all_centroids[i], all_data[i] = kmeans_run(cluster_data, num_k)
+        if (np.isnan(all_centroids[i]).any()):
+            print("Found NaN on run " + str(i) + ", restarting")
+        else:
+            print("k-Means run " + str(i))
+            print("WCSS: " + str(all_WCSS[i]))
+            print("Centroids: " + str(all_centroids[i]))
+            i += 1
+
+    # Find lowest MSE and save that data
+    best_run = np.argmin(all_WCSS)
+    np.savetxt(generate_filename("centroids", num_k),
+            all_centroids[best_run], delimiter=",", fmt="%f")
+    np.savetxt(generate_filename("dataset", num_k),
+            all_data[best_run], delimiter=",", fmt="%f")
+    print("Best WCSS was on run " + str(best_run))
+    
+    
+run_2d("510_cluster_dataset.txt", 10, 5)
